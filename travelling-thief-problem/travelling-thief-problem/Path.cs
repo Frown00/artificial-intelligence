@@ -23,5 +23,10 @@ namespace travelling_thief_problem
         {
             return to;
         }
+
+        public double GetLength()
+        {
+            return from.CalcDistanceTo(to);
+        }
     }
 }

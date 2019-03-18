@@ -22,11 +22,11 @@ namespace travelling_thief_problem
         List<City> cities;
         List<Population> populations;
 
-        int popSize = 5;
+        int popSize = 10;
         int gen = 100;
         double crossingProb = 0.5;
         double mutationProb = 0.5;
-        int tour = 5;
+        int tour = 0;
 
         public TravellingThiefProblem(List<string> problemSetup)
         {
@@ -38,6 +38,7 @@ namespace travelling_thief_problem
 
             Population firstPopulation = GeneratePopulation();
             populations.Add(firstPopulation);
+            TournamentSelection();
             //Console.WriteLine(cities[0].CalcDistanceTo(cities[1]));
             //foreach(City city in cities)
             //{
@@ -67,7 +68,7 @@ namespace travelling_thief_problem
                 }
 
 
-                Thief thief = new Thief(minSpeed, maxSpeed);
+                Thief thief = new Thief(minSpeed, maxSpeed, knapsackCapacity);
 
                 while (cityIndeces.Count > 1)
                 {
@@ -76,20 +77,98 @@ namespace travelling_thief_problem
                     toId = cityIndeces[randomId];
                     Path path = new Path(cities[fromId], cities[toId]);
                     thief.AddPath(path);
+                    thief.CountTravelTime(path);
+                    thief.PutBestItemIntoKnapsack(cities[toId]);
+                    thief.CountFitness();
+
                     fromId = toId;
                     cityIndeces.RemoveAt(randomId);
-                   
                 }
                 population.AddThief(thief);
                 
             }
+            //population.GetThieves()[0].DisplayItems();
+            //foreach (City city in population.GetThieves()[0].VisitedCities())
+            //{
+            //    Console.Write(city.GetIndex() + "->");
+            //}
+            //Console.WriteLine("\n" + population.GetThieves()[0].TravelTime);
+            //Console.WriteLine(population.GetThieves()[0].TotalProfit);
+            //Console.WriteLine(population.GetThieves()[0].Fitness);
 
             //population.Display();
 
             return population;
         }
 
+        private void TournamentSelection()
+        {
+            Random random = new Random();
+            Population newPopulation = new Population();
+            Population currentPopulation = populations[populations.Count-1];
 
+            List<int> thiefIndeces = new List<int>();
+            int idx = 0;
+
+            for (int j = 0; j < currentPopulation.GetThieves().Count; j++)
+            {
+                thiefIndeces.Add(j);
+            }
+            while (newPopulation.ThiefCount < currentPopulation.ThiefCount)
+            {
+                
+
+                List<int> allCompetitors = new List<int>(thiefIndeces);
+                List<int> competitors = new List<int>();
+                if(allCompetitors.Count > tour && tour > 0)
+                {
+                    for (int i = 0; i < tour; i++)
+                    {
+                        int thiefNum = allCompetitors.Count;
+                        int randomId = random.Next(thiefNum);
+                        competitors.Add(randomId);
+                        allCompetitors.RemoveAt(randomId);
+                    }
+                } else
+                {
+                    competitors = new List<int>(allCompetitors);
+                }
+
+                int bestThiefId = FindBestThief(competitors);
+                Thief bestThief = currentPopulation.GetThieves()[bestThiefId];
+                newPopulation.AddThief(bestThief);
+            }
+            Console.WriteLine("Old population");
+            currentPopulation.Display();
+            Console.WriteLine("New population");
+            newPopulation.Display();
+
+            populations.Add(newPopulation);
+
+        }
+
+        private int FindBestThief(List<int> competitors)
+        {
+            int bestThiefId = competitors[0];
+
+            Population currentPopulation = populations[populations.Count - 1];
+            Thief bestThief = currentPopulation.GetThieves()[bestThiefId];
+
+            int i = 0;
+            foreach (int competitorId in competitors)
+            {
+                Thief competitor = currentPopulation.GetThieves()[competitorId];
+                bestThief = currentPopulation.GetThieves()[bestThiefId];
+
+                if ( competitor.Fitness > bestThief.Fitness )
+                {
+                    bestThiefId = competitorId;
+                }
+                i++;
+            }
+
+            return bestThiefId;
+        }
 
         private void AddItemsToCities()
         {

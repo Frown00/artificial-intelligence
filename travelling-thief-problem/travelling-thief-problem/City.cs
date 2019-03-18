@@ -18,6 +18,10 @@ namespace travelling_thief_problem
             itemsInCity = new List<Item>();
         }
 
+        public int GetIndex()
+        {
+            return index;
+        }
         public void AddItem(Item item)
         {
             itemsInCity.Add(item);
@@ -46,6 +50,11 @@ namespace travelling_thief_problem
         {
             double dist = Math.Sqrt(Math.Pow(city.coordX - coordX, 2) + Math.Pow(city.coordY - coordY, 2));
             return dist;
+        }
+
+        public List<Item> GetItems()
+        {
+            return itemsInCity;
         }
 
         public override string ToString()

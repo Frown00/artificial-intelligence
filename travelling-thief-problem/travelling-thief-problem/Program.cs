@@ -14,7 +14,7 @@ namespace travelling_thief_problem
             Thread.CurrentThread.CurrentCulture = ci;
             Thread.CurrentThread.CurrentUICulture = ci;
 
-            List<string> setup = ReadProblemSetup("medium_4");
+            List<string> setup = ReadProblemSetup("easy_0");
 
             TravellingThiefProblem travellingThiefProblem = new TravellingThiefProblem(setup);
 
