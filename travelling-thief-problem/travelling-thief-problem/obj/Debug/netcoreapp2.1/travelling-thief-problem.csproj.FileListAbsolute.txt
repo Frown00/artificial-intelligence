@@ -1,0 +1,11 @@
+D:\Studia\Studia\Semestr 6\Sztuczna inteligencja\Zadanie1\Kod\travelling-thief-problem\travelling-thief-problem\bin\Debug\netcoreapp2.1\travelling-thief-problem.deps.json
+D:\Studia\Studia\Semestr 6\Sztuczna inteligencja\Zadanie1\Kod\travelling-thief-problem\travelling-thief-problem\bin\Debug\netcoreapp2.1\travelling-thief-problem.runtimeconfig.json
+D:\Studia\Studia\Semestr 6\Sztuczna inteligencja\Zadanie1\Kod\travelling-thief-problem\travelling-thief-problem\bin\Debug\netcoreapp2.1\travelling-thief-problem.runtimeconfig.dev.json
+D:\Studia\Studia\Semestr 6\Sztuczna inteligencja\Zadanie1\Kod\travelling-thief-problem\travelling-thief-problem\bin\Debug\netcoreapp2.1\travelling-thief-problem.dll
+D:\Studia\Studia\Semestr 6\Sztuczna inteligencja\Zadanie1\Kod\travelling-thief-problem\travelling-thief-problem\bin\Debug\netcoreapp2.1\travelling-thief-problem.pdb
+D:\Studia\Studia\Semestr 6\Sztuczna inteligencja\Zadanie1\Kod\travelling-thief-problem\travelling-thief-problem\obj\Debug\netcoreapp2.1\travelling-thief-problem.csproj.CoreCompileInputs.cache
+D:\Studia\Studia\Semestr 6\Sztuczna inteligencja\Zadanie1\Kod\travelling-thief-problem\travelling-thief-problem\obj\Debug\netcoreapp2.1\travelling-thief-problem.AssemblyInfoInputs.cache
+D:\Studia\Studia\Semestr 6\Sztuczna inteligencja\Zadanie1\Kod\travelling-thief-problem\travelling-thief-problem\obj\Debug\netcoreapp2.1\travelling-thief-problem.AssemblyInfo.cs
+D:\Studia\Studia\Semestr 6\Sztuczna inteligencja\Zadanie1\Kod\travelling-thief-problem\travelling-thief-problem\obj\Debug\netcoreapp2.1\travelling-thief-problem.dll
+D:\Studia\Studia\Semestr 6\Sztuczna inteligencja\Zadanie1\Kod\travelling-thief-problem\travelling-thief-problem\obj\Debug\netcoreapp2.1\travelling-thief-problem.pdb
+D:\Studia\Studia\Semestr 6\Sztuczna inteligencja\Zadanie1\Kod\travelling-thief-problem\travelling-thief-problem\obj\Debug\netcoreapp2.1\travelling-thief-problem.csprojAssemblyReference.cache
