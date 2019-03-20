@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 
 namespace travelling_thief_problem
@@ -26,7 +29,7 @@ namespace travelling_thief_problem
         int gen = 100;
         double crossingProb = 0.5;
         double mutationProb = 0.5;
-        int tour = 0;
+        int tour = 3;
 
         public TravellingThiefProblem(List<string> problemSetup)
         {
@@ -35,19 +38,27 @@ namespace travelling_thief_problem
             populations = new List<Population>();
             MapToObject(problemSetup);
             AddItemsToCities();
-
             Population firstPopulation = GeneratePopulation();
             populations.Add(firstPopulation);
-            TournamentSelection();
-            //Console.WriteLine(cities[0].CalcDistanceTo(cities[1]));
-            //foreach(City city in cities)
-            //{
-            //    Console.WriteLine(city);
-            //    city.DisplayAllItems();
-            //    Console.WriteLine("\n");
-            //}
+
+            Population currentPopulation = populations[populations.Count - 1];
+            TournamentSelection(currentPopulation);
+            Crossing(currentPopulation);
+            Console.WriteLine("After eval");
+            Evaluate(currentPopulation);
+            currentPopulation.Display();
+
+            //Mutation(currentPopulation);
+            Evaluate(currentPopulation);
+
+            Console.WriteLine("After eval");
+            currentPopulation.Display();
+            //Population currentPopulation = populations[populations.Count - 1];
+            //currentPopulation.Display();
+
         }
 
+        
 
         private Population GeneratePopulation()
         {
@@ -70,7 +81,7 @@ namespace travelling_thief_problem
 
                 Thief thief = new Thief(minSpeed, maxSpeed, knapsackCapacity);
 
-                while (cityIndeces.Count > 1)
+                while (cityIndeces.Count > 0)
                 {
                     int citiesNum = cityIndeces.Count;
                     int randomId = random.Next(citiesNum);
@@ -84,6 +95,11 @@ namespace travelling_thief_problem
                     fromId = toId;
                     cityIndeces.RemoveAt(randomId);
                 }
+                Path returnPath = new Path(thief.Paths[thief.Paths.Count - 1].getTo(), cities[0]);
+                thief.AddPath(returnPath);
+                thief.CountTravelTime(returnPath);
+                thief.CountFitness();
+
                 population.AddThief(thief);
                 
             }
@@ -101,11 +117,11 @@ namespace travelling_thief_problem
             return population;
         }
 
-        private void TournamentSelection()
+        private void TournamentSelection(Population pop)
         {
             Random random = new Random();
             Population newPopulation = new Population();
-            Population currentPopulation = populations[populations.Count-1];
+            Population currentPopulation = pop;
 
             List<int> thiefIndeces = new List<int>();
             int idx = 0;
@@ -170,6 +186,139 @@ namespace travelling_thief_problem
             return bestThiefId;
         }
 
+
+        private void Crossing(Population pop)
+        {
+
+            Population currentPopulation = pop;
+            Population afterCrossing = new Population();
+            Random random = new Random();
+
+            while (afterCrossing.ThiefCount != currentPopulation.ThiefCount)
+            {
+                // choose random parents
+                int firstParentId = random.Next(currentPopulation.ThiefCount);
+                int secondParentId = firstParentId;
+                while(secondParentId == firstParentId)
+                {
+                    secondParentId = random.Next(currentPopulation.ThiefCount);
+                }
+                Thief parent1 = currentPopulation.GetThieves()[firstParentId];
+                Thief parent2 = currentPopulation.GetThieves()[secondParentId];
+
+
+                int allelesLength = parent1.VisitedCities().Count / 2;
+                int startAlleles = random.Next(parent1.VisitedCities().Count / 2);
+                Thief child1 = new Thief(parent1.MinSpeed, parent1.MaxSpeed, parent1.MaxCapacity);
+                Thief child2 = new Thief(parent2.MinSpeed, parent2.MaxSpeed, parent2.MaxCapacity);
+
+                List<City> childVisitedCities1 = new List<City>();
+                List<City> childVisitedCities2 = new List<City>();
+
+                List<City> tempParentCities1 = new List<City>(parent1.VisitedCities());
+                List<City> tempParentCities2 = new List<City>(parent2.VisitedCities());
+                
+                // initate childs
+                for (int i = 0; i < parent1.VisitedCities().Count; i++)
+                {
+                    childVisitedCities1.Add(new City(-1, -1, -1));
+                    childVisitedCities2.Add(new City(-1, -1, -1));
+                }
+
+                // choose alleles
+                for (int i = startAlleles; i < startAlleles + allelesLength; i++)
+                {
+                    childVisitedCities1[i] = parent1.VisitedCities()[i];
+                    int idToRemove1 = FindCityToRemove(tempParentCities2, childVisitedCities1[i].GetIndex());
+                    tempParentCities2.RemoveAt(idToRemove1);
+                    childVisitedCities2[i] = parent2.VisitedCities()[i];
+                    int idToRemove2 = FindCityToRemove(tempParentCities1, childVisitedCities2[i].GetIndex());
+                    tempParentCities1.RemoveAt(idToRemove2);
+
+                }
+
+                // Assign alleles from second parent
+                for (int i = 0; i < childVisitedCities1.Count; i++)
+                {
+                    if (childVisitedCities1[i].GetIndex() == -1)
+                    {
+                        childVisitedCities1[i] = tempParentCities2[0];
+                        tempParentCities2.RemoveAt(0);
+                    }
+
+                    if (childVisitedCities2[i].GetIndex() == -1)
+                    {
+                        childVisitedCities2[i] = tempParentCities1[0];
+                        tempParentCities1.RemoveAt(0);
+                    }
+                }
+
+                child1.MapToPaths(childVisitedCities1);
+                child2.MapToPaths(childVisitedCities2);
+
+                afterCrossing.AddThief(child1);
+                afterCrossing.AddThief(child2);
+            }
+
+            currentPopulation.Copy(afterCrossing);
+
+
+        }
+
+        private int FindCityToRemove(List<City> cities, int cityId)
+        {
+            int toRemove = -1;
+            for(int i = 0; i < cities.Count; i++)
+            {
+                if(cities[i].GetIndex() == cityId)
+                {
+                    toRemove = i;
+                    break;
+                }
+            }
+            return toRemove;
+        }
+
+
+        //// MUTATION ////
+        private void Mutation(Population currentPopulation)
+        {
+            Population newPopulation = new Population();
+            //List<City> cities = currentPopulation.GetThieves()[0].VisitedCities();
+            //var swapped = Swap(currentPopulation.GetThieves()[0].VisitedCities(), 1, 2);
+            //currentPopulation.GetThieves()[0].MapToPaths((List<City>)swapped);
+            Console.WriteLine("Mutation");
+
+        }
+
+
+        public static IList<T> Swap<T>(IList<T> list, int indexA, int indexB)
+        {
+            T tmp = list[indexA];
+            list[indexA] = list[indexB];
+            list[indexB] = tmp;
+            return list;
+        }
+
+
+        //// EVALUATE ////
+        private void Evaluate(Population pop)
+        {
+            foreach(Thief thief in pop.GetThieves())
+            {
+                thief.ResetTravel();
+                for(int i = 0; i < thief.Paths.Count - 2; i++)
+                {
+                    thief.CountTravelTime(thief.Paths[i]);
+                    thief.PutBestItemIntoKnapsack(thief.Paths[i].getTo());
+                }
+                thief.CountFitness();
+            }
+        }
+
+        
+
+        //// LOADER FUNCTIONS ////
         private void AddItemsToCities()
         {
             int id;
@@ -362,5 +511,8 @@ namespace travelling_thief_problem
             }
 
         }
+       
     }
+
+    
 }

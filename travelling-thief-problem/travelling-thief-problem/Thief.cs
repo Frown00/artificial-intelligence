@@ -7,34 +7,42 @@ namespace travelling_thief_problem
     class Thief
     {
         Knapsack knapsack;
-        double minSpeed;
-        double maxSpeed;
-        List<Path> paths;
+        public double MinSpeed;
+        public double MaxSpeed;
+        public List<Path> Paths;
         double speed;
-        int maxCapacity;
+        public int MaxCapacity;
 
         public double TravelTime = 0;
         public double TotalProfit = 0;
         public double Fitness;
         public Thief(double minSpeed, double maxSpeed, int knapsackCapacity)
         {
-            this.minSpeed = minSpeed;
-            this.maxSpeed = maxSpeed;
+            this.MinSpeed = minSpeed;
+            this.MaxSpeed = maxSpeed;
             speed = maxSpeed;
-            maxCapacity = knapsackCapacity;
-            paths = new List<Path>();
+            MaxCapacity = knapsackCapacity;
+            Paths = new List<Path>();
             knapsack = new Knapsack(knapsackCapacity);
         }
 
+        public void ResetTravel()
+        {
+            TravelTime = 0;
+            TotalProfit = 0;
+            knapsack.RemoveAll();
+            speed = MaxSpeed;
+            
+        }
         public void AddPath(Path path)
         {
-            paths.Add(path);
+            Paths.Add(path);
         }
 
         public void DisplayPaths()
         {
             Console.WriteLine("Thief paths");
-            foreach(Path path in paths)
+            foreach(Path path in Paths)
             {
                 Console.WriteLine("From: ");
                 path.getFrom().DisplayCoord();
@@ -94,18 +102,27 @@ namespace travelling_thief_problem
 
         private void SetSpeed()
         {
-            speed = maxSpeed - ((maxCapacity - knapsack.Capacity) * ((maxSpeed - minSpeed) / maxCapacity));
+            speed = MaxSpeed - ((MaxCapacity - knapsack.Capacity) * ((MaxSpeed - MinSpeed) / MaxCapacity));
         }
 
         public List<City> VisitedCities()
         {
             List<City> visited = new List<City>();
-            foreach(Path path in paths)
+            foreach(Path path in Paths)
             {
                 visited.Add(path.getFrom());
             }
 
             return visited;
+        }
+
+        public void MapToPaths(List<City> visistedCities)
+        {
+            for(int i = 0; i < visistedCities.Count-1; i++)
+            {
+                this.AddPath(new Path(visistedCities[i], visistedCities[i + 1]));
+            }
+            this.AddPath(new Path(visistedCities[visistedCities.Count - 1], visistedCities[0]));
         }
     }
 }

@@ -5,12 +5,14 @@ namespace travelling_thief_problem
 {
     public class Knapsack
     {
+        int maxCapacity;
         public int Capacity;
         List<Item> itemsIn;
         
         public Knapsack(int capacity)
         {
             this.Capacity = capacity;
+            maxCapacity = capacity;
             itemsIn = new List<Item>();
         }
 
@@ -18,6 +20,12 @@ namespace travelling_thief_problem
         {
             itemsIn.Add(item);
             Capacity -= item.Weight;
+        }
+
+        public void RemoveAll()
+        {
+            itemsIn.Clear();
+            Capacity = maxCapacity;
         }
 
         public void DisplayItems()

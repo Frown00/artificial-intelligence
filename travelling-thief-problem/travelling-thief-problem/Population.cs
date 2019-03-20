@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 
 namespace travelling_thief_problem
@@ -34,6 +37,15 @@ namespace travelling_thief_problem
         public List<Thief> GetThieves()
         {
             return thieves;
+        }
+
+        public void Copy(Population other)
+        {
+
+            for(int i = 0; i < ThiefCount; i++)
+            {
+                thieves[i] = other.thieves[i];
+            }
         }
     }
 }
