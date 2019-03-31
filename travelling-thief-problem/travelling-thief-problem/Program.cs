@@ -14,6 +14,7 @@ namespace travelling_thief_problem
             Thread.CurrentThread.CurrentCulture = ci;
             Thread.CurrentThread.CurrentUICulture = ci;
 
+            // Choose file from read data
             List<string> setup = ReadProblemSetup("easy_0");
 
             TravellingThiefProblem travellingThiefProblem = new TravellingThiefProblem(setup);
@@ -32,7 +33,6 @@ namespace travelling_thief_problem
 
                 while ((line = setupFile.ReadLine()) != null)
                 {
-                    //Console.WriteLine(line);
                     setup.Add(line);
                 }
                 setupFile.Close();

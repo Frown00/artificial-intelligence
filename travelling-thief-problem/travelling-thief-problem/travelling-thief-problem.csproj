@@ -6,4 +6,8 @@
     <RootNamespace>travelling_thief_problem</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="CsvHelper" Version="12.1.2" />
+  </ItemGroup>
+
 </Project>

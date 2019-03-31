@@ -1,15 +1,25 @@
-﻿using System;
+﻿using CsvHelper;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Text;
+using System.Threading;
 
 namespace travelling_thief_problem
 {
     class TravellingThiefProblem
     {
+        //// PARAMETERS ////
+        int popSize = 100;
+        int gen = 100;
+        double crossingProb = 0.7;
+        double mutationProb = 0.1;
+        int tour = 5;
+
+        int testNum = 10;
+
+
         string problemName;
         string knapsackDataType;
         int dimension;
@@ -23,42 +33,179 @@ namespace travelling_thief_problem
 
         List<Item> items;
         List<City> cities;
-        List<Population> populations;
+        List<PopulationStats> populationsStats;
+        List<List<PopulationStats>> tests;
 
-        int popSize = 10;
-        int gen = 100;
-        double crossingProb = 0.5;
-        double mutationProb = 0.5;
-        int tour = 3;
-
+       
         public TravellingThiefProblem(List<string> problemSetup)
         {
             items = new List<Item>();
             cities = new List<City>();
-            populations = new List<Population>();
+            populationsStats = new List<PopulationStats>();
             MapToObject(problemSetup);
             AddItemsToCities();
-            Population firstPopulation = GeneratePopulation();
-            populations.Add(firstPopulation);
+            // . -> ,
+            CultureInfo ci = new CultureInfo("pl-PL");
+            Thread.CurrentThread.CurrentCulture = ci;
+            Thread.CurrentThread.CurrentUICulture = ci;
 
-            Population currentPopulation = populations[populations.Count - 1];
-            TournamentSelection(currentPopulation);
-            Crossing(currentPopulation);
-            Console.WriteLine("After eval");
-            Evaluate(currentPopulation);
-            currentPopulation.Display();
+            tests = new List<List<PopulationStats>>();
+            for (int i = 0; i < testNum; i++)
+            {
+                populationsStats.Clear();
+                populationsStats = new List<PopulationStats>();
+                Run();
+                Console.WriteLine($"Test {i + 1} has finished");
+                
+                tests.Add(new List<PopulationStats>(populationsStats));
+            }
+            
+            ExtractDataToCSV();
 
-            //Mutation(currentPopulation);
-            Evaluate(currentPopulation);
+            Console.WriteLine("Done!");
+            Console.WriteLine("Data was extracted to csv file");
+            Process.Start("explorer.exe", System.IO.Directory.GetCurrentDirectory());
+        }
 
-            Console.WriteLine("After eval");
-            currentPopulation.Display();
-            //Population currentPopulation = populations[populations.Count - 1];
-            //currentPopulation.Display();
+        public void Run()
+        {
+            Console.WriteLine("Evaluating...");
+            int popNum = 1;
+
+            Population currentPopulation = GeneratePopulation();
+            currentPopulation.Number = popNum;
+
+            PopulationStats popStats = new PopulationStats();
+            SaveStats(currentPopulation);
+
+            Population newPopulation = new Population();
+
+            for (int i = 1; i < gen; i++)
+            {
+                Console.Write("\r" + "Gen: " + i + "\r");
+                popNum++;
+                newPopulation = TournamentSelection(currentPopulation);
+
+                if (IsPerform(crossingProb))
+                {
+                    Crossing(newPopulation);
+                }
+                Mutation(newPopulation);
+
+                Evaluate(newPopulation);
+
+                newPopulation.Number = popNum;
+                SaveStats(newPopulation);
+                currentPopulation.Copy(newPopulation);
+                newPopulation = null;
+            }
+          
 
         }
 
-        
+        private void SaveStats(Population pop)
+        {
+            PopulationStats popStats = new PopulationStats();
+            popStats.PopulationNumber = pop.Number;
+            popStats.Best = pop.GetStats().Best;
+            popStats.Average = pop.GetStats().Average;
+            popStats.Worst = pop.GetStats().Worst;
+
+            populationsStats.Add(popStats);
+        }
+
+        private void ExtractDataToCSV()
+        {
+
+            //// Preparing records //// 
+            List<PopulationStats> records = new List<PopulationStats>();
+            double testDeviations = 0;
+
+
+            for (int i = 0; i < gen; i++)
+            {
+                double bestSum = 0;
+                double averageSum = 0;
+                double worstSum = 0;
+                
+
+                for (int j = 0; j < tests.Count; j++)
+                {
+                    bestSum += tests[j][i].Best;
+                    averageSum += tests[j][i].Average;
+                    worstSum += tests[j][i].Worst;
+                }
+                double bestAvg = bestSum / tests.Count;
+                double averageAvg = averageSum / tests.Count;
+                double worstAvg = worstSum / tests.Count;
+
+
+                PopulationStats populationStatsAvg = new PopulationStats();
+                populationStatsAvg.PopulationNumber = i + 1;
+                populationStatsAvg.Best = bestAvg;
+                populationStatsAvg.Average = averageAvg;
+                populationStatsAvg.Worst = worstAvg;
+
+                
+
+                records.Add(populationStatsAvg);
+            }
+
+            
+            double testAverageAvg = 0;
+
+            for (int t = 0; t < tests.Count; t++)
+            {
+                double avg = 0;
+                double sum = 0;
+
+                for (int p = 0; p < gen; p++)
+                {
+                    sum += tests[t][p].Average;
+                }
+                avg = sum / popSize;
+                testAverageAvg += avg;
+            }
+            testAverageAvg = testAverageAvg / tests.Count;
+
+
+
+            for (int t = 0; t < tests.Count; t++)
+            {
+                double avg = 0;
+                double sum = 0;
+
+                for (int p = 0; p < gen; p++)
+                {
+                    sum += tests[t][p].Average;
+                }
+                avg = sum / popSize;
+                testDeviations += Math.Pow((avg - testAverageAvg), 2);
+            }
+            testDeviations = Math.Sqrt(testDeviations / tests.Count);
+
+           
+
+
+            // Wrting data to csv
+            using (var writer = new StreamWriter("ttp-stats.csv"))
+            {
+                writer.WriteLine("sep=;");
+                writer.WriteLine($"Population size: {popSize}");
+                writer.WriteLine($"Generation amount: {gen}");
+                writer.WriteLine($"Crossing probability: {crossingProb}");
+                writer.WriteLine($"Mutation probability: {mutationProb}");
+                writer.WriteLine($"Tournament parameter: {tour}");
+                writer.WriteLine("\n");
+                writer.WriteLine($"Deviation : {testDeviations}");
+                using (var csv = new CsvWriter(writer))
+                {
+                    csv.Configuration.Delimiter = ";";
+                    csv.WriteRecords(records);
+                }
+            }
+                
+        }
 
         private Population GeneratePopulation()
         {
@@ -88,7 +235,7 @@ namespace travelling_thief_problem
                     toId = cityIndeces[randomId];
                     Path path = new Path(cities[fromId], cities[toId]);
                     thief.AddPath(path);
-                    thief.CountTravelTime(path);
+                    thief.AddToTravelTime(path);
                     thief.PutBestItemIntoKnapsack(cities[toId]);
                     thief.CountFitness();
 
@@ -97,34 +244,24 @@ namespace travelling_thief_problem
                 }
                 Path returnPath = new Path(thief.Paths[thief.Paths.Count - 1].getTo(), cities[0]);
                 thief.AddPath(returnPath);
-                thief.CountTravelTime(returnPath);
+                thief.AddToTravelTime(returnPath);
                 thief.CountFitness();
 
                 population.AddThief(thief);
                 
             }
-            //population.GetThieves()[0].DisplayItems();
-            //foreach (City city in population.GetThieves()[0].VisitedCities())
-            //{
-            //    Console.Write(city.GetIndex() + "->");
-            //}
-            //Console.WriteLine("\n" + population.GetThieves()[0].TravelTime);
-            //Console.WriteLine(population.GetThieves()[0].TotalProfit);
-            //Console.WriteLine(population.GetThieves()[0].Fitness);
-
-            //population.Display();
+            
 
             return population;
         }
 
-        private void TournamentSelection(Population pop)
+        private Population TournamentSelection(Population pop)
         {
             Random random = new Random();
             Population newPopulation = new Population();
             Population currentPopulation = pop;
 
             List<int> thiefIndeces = new List<int>();
-            int idx = 0;
 
             for (int j = 0; j < currentPopulation.GetThieves().Count; j++)
             {
@@ -150,31 +287,28 @@ namespace travelling_thief_problem
                     competitors = new List<int>(allCompetitors);
                 }
 
-                int bestThiefId = FindBestThief(competitors);
+                int bestThiefId = FindBestThief(competitors, currentPopulation);
                 Thief bestThief = currentPopulation.GetThieves()[bestThiefId];
-                newPopulation.AddThief(bestThief);
+                Thief newBestThief = new Thief(minSpeed, maxSpeed, knapsackCapacity);
+                newBestThief.MapToPaths(bestThief.VisitedCities());
+                newPopulation.AddThief(newBestThief);
             }
-            Console.WriteLine("Old population");
-            currentPopulation.Display();
-            Console.WriteLine("New population");
-            newPopulation.Display();
 
-            populations.Add(newPopulation);
+            return newPopulation;
 
         }
 
-        private int FindBestThief(List<int> competitors)
+        private int FindBestThief(List<int> competitors, Population population)
         {
             int bestThiefId = competitors[0];
 
-            Population currentPopulation = populations[populations.Count - 1];
-            Thief bestThief = currentPopulation.GetThieves()[bestThiefId];
+            Thief bestThief = population.GetThieves()[bestThiefId];
 
             int i = 0;
             foreach (int competitorId in competitors)
             {
-                Thief competitor = currentPopulation.GetThieves()[competitorId];
-                bestThief = currentPopulation.GetThieves()[bestThiefId];
+                Thief competitor = population.GetThieves()[competitorId];
+                bestThief = population.GetThieves()[bestThiefId];
 
                 if ( competitor.Fitness > bestThief.Fitness )
                 {
@@ -186,7 +320,7 @@ namespace travelling_thief_problem
             return bestThiefId;
         }
 
-
+        //// CROSSING ////
         private void Crossing(Population pop)
         {
 
@@ -194,12 +328,14 @@ namespace travelling_thief_problem
             Population afterCrossing = new Population();
             Random random = new Random();
 
-            while (afterCrossing.ThiefCount != currentPopulation.ThiefCount)
+            for (int k = 0; k < currentPopulation.ThiefCount; k++)
             {
                 // choose random parents
                 int firstParentId = random.Next(currentPopulation.ThiefCount);
                 int secondParentId = firstParentId;
-                while(secondParentId == firstParentId)
+
+
+                while (secondParentId == firstParentId)
                 {
                     secondParentId = random.Next(currentPopulation.ThiefCount);
                 }
@@ -217,7 +353,7 @@ namespace travelling_thief_problem
 
                 List<City> tempParentCities1 = new List<City>(parent1.VisitedCities());
                 List<City> tempParentCities2 = new List<City>(parent2.VisitedCities());
-                
+
                 // initate childs
                 for (int i = 0; i < parent1.VisitedCities().Count; i++)
                 {
@@ -229,10 +365,10 @@ namespace travelling_thief_problem
                 for (int i = startAlleles; i < startAlleles + allelesLength; i++)
                 {
                     childVisitedCities1[i] = parent1.VisitedCities()[i];
-                    int idToRemove1 = FindCityToRemove(tempParentCities2, childVisitedCities1[i].GetIndex());
+                    int idToRemove1 = FindCityToRemove(tempParentCities2, childVisitedCities1[i].Index);
                     tempParentCities2.RemoveAt(idToRemove1);
                     childVisitedCities2[i] = parent2.VisitedCities()[i];
-                    int idToRemove2 = FindCityToRemove(tempParentCities1, childVisitedCities2[i].GetIndex());
+                    int idToRemove2 = FindCityToRemove(tempParentCities1, childVisitedCities2[i].Index);
                     tempParentCities1.RemoveAt(idToRemove2);
 
                 }
@@ -240,13 +376,13 @@ namespace travelling_thief_problem
                 // Assign alleles from second parent
                 for (int i = 0; i < childVisitedCities1.Count; i++)
                 {
-                    if (childVisitedCities1[i].GetIndex() == -1)
+                    if (childVisitedCities1[i].Index == -1)
                     {
                         childVisitedCities1[i] = tempParentCities2[0];
                         tempParentCities2.RemoveAt(0);
                     }
 
-                    if (childVisitedCities2[i].GetIndex() == -1)
+                    if (childVisitedCities2[i].Index == -1)
                     {
                         childVisitedCities2[i] = tempParentCities1[0];
                         tempParentCities1.RemoveAt(0);
@@ -259,7 +395,7 @@ namespace travelling_thief_problem
                 afterCrossing.AddThief(child1);
                 afterCrossing.AddThief(child2);
             }
-
+               
             currentPopulation.Copy(afterCrossing);
 
 
@@ -270,10 +406,10 @@ namespace travelling_thief_problem
             int toRemove = -1;
             for(int i = 0; i < cities.Count; i++)
             {
-                if(cities[i].GetIndex() == cityId)
+                if(cities[i].Index == cityId)
                 {
                     toRemove = i;
-                    break;
+                    i = cities.Count;
                 }
             }
             return toRemove;
@@ -283,11 +419,29 @@ namespace travelling_thief_problem
         //// MUTATION ////
         private void Mutation(Population currentPopulation)
         {
-            Population newPopulation = new Population();
-            //List<City> cities = currentPopulation.GetThieves()[0].VisitedCities();
-            //var swapped = Swap(currentPopulation.GetThieves()[0].VisitedCities(), 1, 2);
-            //currentPopulation.GetThieves()[0].MapToPaths((List<City>)swapped);
-            Console.WriteLine("Mutation");
+            Random random = new Random();
+            foreach(Thief thief in currentPopulation.GetThieves())
+            {
+                if(IsPerform(mutationProb))
+                {
+                    int firstCity = random.Next(1, thief.VisitedCities().Count);
+                    int secondCity = firstCity;
+
+                    while (secondCity == firstCity)
+                    {
+                        secondCity = random.Next(1, thief.VisitedCities().Count);
+                    }
+
+                    List<City> cities = thief.VisitedCities();
+                    List<City> citiesAfterMutation = new List<City>((List<City>)Swap(cities, firstCity, secondCity));
+
+                   
+
+                    thief.MapToPaths(citiesAfterMutation);
+
+                }
+
+            }
 
         }
 
@@ -300,6 +454,11 @@ namespace travelling_thief_problem
             return list;
         }
 
+        private bool IsPerform(double probability)
+        {
+            Random random = new Random();
+            return random.Next(1) < probability;
+        }
 
         //// EVALUATE ////
         private void Evaluate(Population pop)
@@ -307,9 +466,9 @@ namespace travelling_thief_problem
             foreach(Thief thief in pop.GetThieves())
             {
                 thief.ResetTravel();
-                for(int i = 0; i < thief.Paths.Count - 2; i++)
+                for(int i = 0; i < thief.Paths.Count - 1; i++)
                 {
-                    thief.CountTravelTime(thief.Paths[i]);
+                    thief.AddToTravelTime(thief.Paths[i]);
                     thief.PutBestItemIntoKnapsack(thief.Paths[i].getTo());
                 }
                 thief.CountFitness();

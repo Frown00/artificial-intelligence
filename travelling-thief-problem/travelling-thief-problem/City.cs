@@ -5,23 +5,20 @@ namespace travelling_thief_problem
 {
     public class City
     {
-        int index;
+        public int Index;
         double coordX;
         double coordY;
         List<Item> itemsInCity;
 
         public City(int index, double coordX, double coordY)
         {
-            this.index = index;
+            Index = index;
             this.coordX = coordX;
             this.coordY = coordY;
             itemsInCity = new List<Item>();
         }
 
-        public int GetIndex()
-        {
-            return index;
-        }
+        
         public void AddItem(Item item)
         {
             itemsInCity.Add(item);
@@ -43,7 +40,7 @@ namespace travelling_thief_problem
 
         public void DisplayCoord()
         {
-            Console.WriteLine($"City nr: {index}\t coord_x: {coordX}\t coord_y: {coordY}");
+            Console.WriteLine($"City nr: {Index}\t coord_x: {coordX}\t coord_y: {coordY}");
         }
 
         public double CalcDistanceTo(City city)
@@ -59,7 +56,7 @@ namespace travelling_thief_problem
 
         public override string ToString()
         {
-            return $"City index: {index}\tcoord_x: {coordX}\tcoord_y: {coordY}";
+            return $"City index: {Index}\tcoord_x: {coordX}\tcoord_y: {coordY}";
         }
     }
 }
